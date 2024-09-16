@@ -1,11 +1,14 @@
 import asyncio
 from aiogram import Bot, Dispatcher, types
-from config_reader import config
+import os
 import logging
 from handlers import questions
+from dotenv import load_dotenv
 
+
+load_dotenv()
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)')
-bot = Bot(token=config.bot_token.get_secret_value())
+bot = Bot(os.getenv('BOT_TOKEN'))
 dp = Dispatcher()
 dp.include_routers(questions.router)
 
