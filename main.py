@@ -1,18 +1,17 @@
 import asyncio
-from aiogram import Bot, Dispatcher, types
-import os
-import logging
+from aiogram import Bot, Dispatcher
+from config import settings
 from handlers import questions
-from dotenv import load_dotenv
+from database.models import create_tables
 
 
-load_dotenv()
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)')
-bot = Bot(os.getenv('BOT_TOKEN'))
+# logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)')
+bot = Bot(settings.BOT_TOKEN)
 dp = Dispatcher()
 dp.include_routers(questions.router)
 
 async def main():
+    await create_tables()
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
 
