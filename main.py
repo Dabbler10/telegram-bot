@@ -1,13 +1,7 @@
 import asyncio
 from database.models import create_tables
-from handlers.bot import bot, dp
-from handlers.questions import router
-
-
-# logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)')
-# bot = Bot(settings.BOT_TOKEN)
-# dp = Dispatcher()
-# dp.include_routers(questions.router)
+from telegram_bot.bot import bot, dp
+from telegram_bot.handlers import router
 
 
 async def main():
@@ -16,4 +10,7 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    try:
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print('Interrupted')

@@ -4,7 +4,6 @@ from aiogram.filters.callback_data import CallbackData
 from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from sqlalchemy import BigInteger
 
 from database.requests import get_categories
 
@@ -14,6 +13,7 @@ class CategoriesCallbackFactory(CallbackData, prefix="fabcat"):
 
 class ModerationCallbackFactory(CallbackData, prefix="mdr"):
     action: str
+    type: str
     user_id: int
     name: Optional[str] = None
 
@@ -38,8 +38,14 @@ async def make_categories_get_kb() -> InlineKeyboardMarkup:
     builder.adjust(4)
     return builder.as_markup()
 
-async def make_moderation_kb(name: str, user_id: int, user_state: FSMContext) -> InlineKeyboardMarkup:
+async def make_category_moderation_kb(name: str, user_id: int) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
-    builder.button(text="Подтвердить", callback_data=ModerationCallbackFactory(action="accept", name=name, user_id=user_id).pack())
-    builder.button(text="Отклонить", callback_data=ModerationCallbackFactory(action="reject", user_id=user_id).pack())
+    builder.button(text="Подтвердить", callback_data=ModerationCallbackFactory(action="accept", name=name, user_id=user_id, type="category").pack())
+    builder.button(text="Отклонить", callback_data=ModerationCallbackFactory(action="reject", user_id=user_id, type="category").pack())
+    return builder.as_markup()
+
+async def make_document_moderation_kb(name: str, user_id: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.button(text="Подтвердить", callback_data=ModerationCallbackFactory(action="accept", name=name, user_id=user_id, type="document").pack())
+    builder.button(text="Отклонить", callback_data=ModerationCallbackFactory(action="reject", user_id=user_id, type="document").pack())
     return builder.as_markup()

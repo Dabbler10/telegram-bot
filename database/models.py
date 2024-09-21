@@ -1,10 +1,10 @@
 import datetime
-
 from sqlalchemy import ForeignKey, BigInteger, Identity, text, func
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 from sqlalchemy.orm import Mapped, mapped_column, DeclarativeBase
-
 from config import settings
+
+
 
 engine = create_async_engine(url=settings.DATABASE_URL, echo=True)
 async_session = async_sessionmaker(engine)
@@ -20,6 +20,7 @@ async def create_tables():
         await conn.run_sync(Base.metadata.create_all)
 
 
+#-------------------------------------------Таблицы-------------------------------------------
 class Users(Base):
     __tablename__ = 'users'
 
@@ -29,6 +30,7 @@ class Users(Base):
     firstname: Mapped[str]
     created_at: Mapped[datetime.datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime.datetime] = mapped_column(server_default=func.now(), onupdate=datetime.datetime.now)
+
 
 class Files(Base):
     __tablename__ = 'files'
@@ -40,6 +42,7 @@ class Files(Base):
     # address: Mapped[str]
     creator_id: Mapped[int] = mapped_column(BigInteger, Identity(), ForeignKey('users.user_id'))
     created_at: Mapped[datetime.datetime] = mapped_column(server_default=func.now())
+
 
 class Categories(Base):
     __tablename__ = 'categories'
