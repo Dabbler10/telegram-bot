@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     BOT_TOKEN: str
+    MODER_CHAT_ID: str
     DB_HOST: str
     DB_PORT: int
     DB_USER: str
