@@ -7,6 +7,7 @@ from telegram_bot.handlers import router
 async def main():
     await create_tables()
     dp.include_routers(router)
+    await bot.delete_webhook()
     await dp.start_polling(bot)
 
 if __name__ == '__main__':

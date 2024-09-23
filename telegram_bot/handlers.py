@@ -1,5 +1,6 @@
 from aiogram import Router, F
 from aiogram.filters import Command, StateFilter
+from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import Message
 
@@ -28,7 +29,7 @@ class GetDocument(StatesGroup):
 async def cmd_start(message: Message, state: FSMContext):
     await set_user(message.from_user.id, message.from_user.username, message.from_user.first_name)
     await message.answer(f"Привет, {message.from_user.first_name}. Я помогу тебе находить, добавлять и редактировать конспекты" )
-    await state.clear()
+    await state.set_state(None)
 
 
 @router.message(Command("help"))
@@ -67,7 +68,7 @@ async def category_name_chosen(message: Message, state: FSMContext):
     await state.update_data(chosen_category=message.text)
     await state.set_state(AddDocument.category_moderation)
     await message.answer("Название ушло на модерацию")
-    await send_message_to_moderator(text=f"Пользователь {message.from_user.username} хочет добавить новый предмет: {message.text}.",
+    await send_message_to_moderator(text=f"Пользователь @{message.from_user.username} хочет добавить новый предмет: {message.text}.",
                                     reply_markup= await make_category_moderation_kb(message.text, message.from_user.id))
 
 
