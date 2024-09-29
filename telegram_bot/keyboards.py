@@ -50,7 +50,8 @@ async def make_categories_add_kb() -> InlineKeyboardMarkup:
                                              callback_data=CategoriesCallbackFactory(action="chosen",
                                                                                      name=category.name).pack()))
     builder.adjust(4)
-    builder.add(InlineKeyboardButton(text="Добавить", callback_data=CategoriesCallbackFactory(action="add", name="add").pack()))
+    builder.add(InlineKeyboardButton(text="Добавить",
+                                     callback_data=CategoriesCallbackFactory(action="add", name="add").pack()))
     return builder.as_markup()
 
 
@@ -59,7 +60,8 @@ async def make_categories_get_kb() -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
     if categories:
         for category in categories:
-            builder.add(InlineKeyboardButton(text=category.name, callback_data=CategoriesCallbackFactory(action="chosen", name=category.name).pack()))
+            builder.add(InlineKeyboardButton(text=category.name,
+                                             callback_data=CategoriesCallbackFactory(action="chosen", name=category.name).pack()))
     builder.adjust(4)
     return builder.as_markup()
 
@@ -114,7 +116,7 @@ async def make_file_by_name_kb(category_name: str) -> InlineKeyboardMarkup:
 
 async def make_file_by_date_kb() -> InlineKeyboardMarkup:
     files = await get_all_files()
-    dates = set(list(map(lambda file: file.created_at.strftime('%d.%m.%Y'), files)))
+    dates = {file.created_at.strftime('%d.%m.%Y') for file in files}
     print(dates)
     builder = InlineKeyboardBuilder()
     if len(files) != 0:

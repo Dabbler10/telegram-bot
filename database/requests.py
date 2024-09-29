@@ -36,17 +36,19 @@ async def add_file(file_id: str, file_name: str, category_name: str, user_id: in
 async def set_file_moderation(name: str):
     async with async_session() as session:
         file = await session.scalar(select(Files).where(Files.name == name))
-        if file:
-            file.is_moderated = True
-            await session.commit()
+        if not file:
+            return
+        file.is_moderated = True
+        await session.commit()
 
 
 async def set_filename(filename: str, id: str):
     async with async_session() as session:
         file = await session.scalar(select(Files).where(Files.file_id == id))
-        if file:
-            file.name_by_user = filename
-            await session.commit()
+        if not file:
+            return
+        file.name_by_user = filename
+        await session.commit()
 
 
 async def get_file(name: str):
@@ -57,17 +59,15 @@ async def get_file(name: str):
 async def get_moderation_files(category_name: str):
     async with async_session() as session:
         category_id = await get_category_id(category_name)
-        files = list (await session.scalars(select(Files).where(Files.is_moderated).where(Files.category_id == category_id)
-                                            .where(Files.is_private == False)))
-        files.sort(key=lambda file: file.created_at)
+        files = list(await session.scalars(select(Files).where(Files.is_moderated).where(Files.category_id == category_id)
+                                            .where(Files.is_private == False).order_by(Files.created_at)))
         return files
 
 async def get_moderation_files_with_name(category_name: str):
     async with async_session() as session:
         category_id = await get_category_id(category_name)
         files = list (await session.scalars(select(Files).where(Files.is_moderated).where(Files.category_id == category_id)
-                                            .where(Files.is_private == False).where(Files.name_by_user != None)))
-        files.sort(key=lambda file: file.created_at)
+                                            .where(Files.is_private == False).where(Files.name_by_user.isnot(None)).order_by(Files.created_at)))
         return files
 
 
@@ -89,7 +89,7 @@ async def get_files_by_date(date_str: str):
         date = datetime.datetime.strptime(date_str, '%d.%m.%Y')
         next_date = date + datetime.timedelta(days=1)
         files = list(await session.scalars(select(Files).where(Files.is_moderated).where(Files.is_private == False)
-                                           .where(Files.created_at >= date).where(Files.created_at <= next_date)))
+                                           .where(Files.created_at >= date).where(Files.created_at < next_date)))
         return files
 
 async def delete_file(name: str):

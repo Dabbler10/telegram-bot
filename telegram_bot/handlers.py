@@ -33,8 +33,10 @@ class AddPrivateFile(StatesGroup):
     is_named_file = State()
     add_file_name = State()
 
+
 class GetFilesByDate(StatesGroup):
     chose_date = State()
+
 
 #-------------------------------------------Команды-------------------------------------------
 @router.message(Command("start"))
@@ -44,17 +46,11 @@ async def cmd_start(message: Message, state: FSMContext):
     await state.set_state(None)
 
 
-# @router.message(Command("help"))
-# async def cmd_help(message: Message):
-#     await message.answer("Напиши предмет, и я попытаюсь найти конспекты по нему :)")
-
-
 @router.message(Command("add"), StateFilter(None))
 async def cmd_add(message: Message, state: FSMContext):
     await message.answer(
         "Выбери предмет из списка или добавь свой",
-        reply_markup= await make_categories_add_kb()
-    )
+        reply_markup= await make_categories_add_kb())
     await state.set_state(AddFile.chose_category)
 
 
@@ -62,8 +58,7 @@ async def cmd_add(message: Message, state: FSMContext):
 async def cmd_get(message: Message, state: FSMContext):
     await message.answer(
         "Выбери предмет из списка",
-        reply_markup=await make_categories_get_kb()
-    )
+        reply_markup=await make_categories_get_kb())
     await state.set_state(GetFile.chose_category)
 
 
@@ -96,26 +91,6 @@ async def cmd_get_private(message: Message):
                                       caption=f"Отправлен {file.created_at.day:02d}-{file.created_at.month:02d}-{file.created_at.year} в {file.created_at.hour:02d}:{file.created_at.minute:02d}.")
 
 
-
-# @router.message(Command("get_by_name"), StateFilter(None))
-# async def cmd_get_by_name(message: Message, command: CommandObject):
-#     if command.args is None:
-#         await message.answer("Ошибка: не передано имя")
-#         return
-#
-#     try:
-#         name = command.args
-#     except IndexError:
-#         await message.answer("Ошибка: неправильный формат команды. Пример:\n"
-#                              "/get_by_name <name>")
-#         return
-#     files = await get_files_by_name(name)
-#     for file in files:
-#         await message.answer_document(document=file.file_id,
-#                                       caption=f"{file.name_by_user}\n"
-#                                               f"Отправлен {file.created_at.day:02d}-{file.created_at.month:02d}-{file.created_at.year} в {file.created_at.hour:02d}:{file.created_at.minute:02d}.")
-
-
 #-------------------------------------------Add-Category-диалог-------------------------------------------
 @router.callback_query(CategoriesCallbackFactory.filter(F.action == "add"), AddFile.chose_category)
 async def answer_callback_query(callback: CallbackQuery, state: FSMContext):
@@ -131,6 +106,7 @@ async def category_name_chosen(message: Message, state: FSMContext):
     await message.answer("Название ушло на модерацию")
     await send_message_to_moderator(text=f"Пользователь @{message.from_user.username} хочет добавить новый предмет: {message.text}.",
                                     reply_markup= await make_category_moderation_kb(message.text, message.from_user.id))
+
 
 @router.message(AddFile.add_category)
 async def category_name_chosen_incorrectly(message: Message):
