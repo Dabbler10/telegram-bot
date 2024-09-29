@@ -1,4 +1,5 @@
 import sqlalchemy
+import datetime
 from sqlalchemy import select, update
 from database.models import async_session, Users, Files, Categories
 
@@ -44,7 +45,6 @@ async def set_filename(filename: str, id: str):
     async with async_session() as session:
         file = await session.scalar(select(Files).where(Files.file_id == id))
         if file:
-            print("Абоба")
             file.name_by_user = filename
             await session.commit()
 
@@ -53,10 +53,18 @@ async def get_file(name: str):
     async with async_session() as session:
         return await session.scalar(select(Files).where(Files.name == name))
 
+
 async def get_moderation_files(category_name: str):
     async with async_session() as session:
         category_id = await get_category_id(category_name)
         files = list (await session.scalars(select(Files).where(Files.is_moderated).where(Files.category_id == category_id).where(Files.is_private == False)))
+        files.sort(key=lambda file: file.created_at)
+        return files
+
+async def get_moderation_files_with_name(category_name: str):
+    async with async_session() as session:
+        category_id = await get_category_id(category_name)
+        files = list (await session.scalars(select(Files).where(Files.is_moderated).where(Files.category_id == category_id).where(Files.is_private == False).where(Files.name_by_user != None)))
         files.sort(key=lambda file: file.created_at)
         return files
 
@@ -67,10 +75,22 @@ async def get_all_files():
         files.sort(key=lambda file: file.created_at)
         return files
 
-async def get_files_by_name(name: str):
+async def get_files_by_name(name: str, category_name: str):
     async with async_session() as session:
-        files = list(await session.scalars(select(Files).where(Files.is_moderated).where(Files.is_private == False).where(Files.name_by_user == name)))
+        category_id = await get_category_id(category_name)
+        files = list(await session.scalars(select(Files).where(Files.is_moderated).where(Files.is_private == False).where(Files.name_by_user == name).where(Files.category_id == category_id)))
         return files
+
+async def get_files_by_date(date: str):
+    async with async_session() as session:
+        files = await get_all_files()
+        result = list()
+        for file in files:
+            if file.created_at.date() == datetime.datetime.strptime(date, "%d.%m.%Y").date():
+                result.append(file)
+        print(result)
+        print(date)
+        return result
 
 async def delete_file(name: str):
     async with async_session() as session:

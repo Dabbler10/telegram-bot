@@ -1,10 +1,9 @@
-from typing import Optional
-
 from aiogram.filters.callback_data import CallbackData
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from datetime import datetime
 
-from database.requests import get_categories
+from database.requests import get_categories, get_moderation_files_with_name, get_all_files
 
 
 #-------------------------------------------Callback-фабрики-------------------------------------
@@ -15,6 +14,12 @@ class CategoriesCallbackFactory(CallbackData, prefix="fabcat"):
 
 class FileNameCallbackFactory(CallbackData, prefix="flnm"):
     action: str
+
+class FileCallbackFactory(CallbackData, prefix="fls"):
+    name: str
+
+class DateCallbackFactory(CallbackData, prefix="dt"):
+    date: str
 
 
 class ModerationCategoryCallbackFactory(CallbackData, prefix="mdrct"):
@@ -93,4 +98,27 @@ async def make_filename_moderation_kb(name: str, user_id: int) -> InlineKeyboard
                    callback_data=ModerationFilenameCallbackFactory(action="accept", name=name, user_id=user_id).pack())
     builder.button(text="Отклонить",
                    callback_data=ModerationFilenameCallbackFactory(action="reject", user_id=user_id).pack())
+    return builder.as_markup()
+
+
+async def make_file_by_name_kb(category_name: str) -> InlineKeyboardMarkup:
+    files = await get_moderation_files_with_name(category_name)
+    builder = InlineKeyboardBuilder()
+    if len(files) != 0:
+        for file in files:
+            builder.button(text=file.name_by_user, callback_data=FileCallbackFactory(name=file.name_by_user))
+    builder.button(text="Все файлы", callback_data=FileCallbackFactory(name="all"))
+    builder.adjust(1)
+    return builder.as_markup()
+
+
+async def make_file_by_date_kb() -> InlineKeyboardMarkup:
+    files = await get_all_files()
+    dates = set(list(map(lambda file: file.created_at.strftime('%d.%m.%Y'), files)))
+    print(dates)
+    builder = InlineKeyboardBuilder()
+    if len(files) != 0:
+        for date in dates:
+            builder.button(text=date, callback_data=DateCallbackFactory(date=date))
+    builder.adjust(1)
     return builder.as_markup()

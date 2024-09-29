@@ -24,6 +24,7 @@ class AddFile(StatesGroup):
 
 class GetFile(StatesGroup):
     chose_category = State()
+    chose_name = State()
     get_file = State()
 
 
@@ -32,6 +33,8 @@ class AddPrivateFile(StatesGroup):
     is_named_file = State()
     add_file_name = State()
 
+class GetFilesByDate(StatesGroup):
+    chose_date = State()
 
 #-------------------------------------------Команды-------------------------------------------
 @router.message(Command("start"))
@@ -41,9 +44,9 @@ async def cmd_start(message: Message, state: FSMContext):
     await state.set_state(None)
 
 
-@router.message(Command("help"))
-async def cmd_help(message: Message):
-    await message.answer("Напиши предмет, и я попытаюсь найти конспекты по нему :)")
+# @router.message(Command("help"))
+# async def cmd_help(message: Message):
+#     await message.answer("Напиши предмет, и я попытаюсь найти конспекты по нему :)")
 
 
 @router.message(Command("add"), StateFilter(None))
@@ -64,14 +67,13 @@ async def cmd_get(message: Message, state: FSMContext):
     await state.set_state(GetFile.chose_category)
 
 
-@router.message(Command("get_all"), StateFilter(None))
-async def cmd_get_all(message: Message):
+@router.message(Command("get_by_date"), StateFilter(None))
+async def cmd_get_by_date(message: Message, state: FSMContext):
     files = await get_all_files()
     if len(list(files)) == 0:
         await message.answer("К сожалению пока что нет файлов")
-    for file in files:
-        await message.answer_document(document=file.file_id,
-                                      caption=f"Отправлен {file.created_at.day:02d}-{file.created_at.month:02d}-{file.created_at.year} в {file.created_at.hour:02d}:{file.created_at.minute:02d}.")
+    await message.answer(text="Выбери день:", reply_markup=await make_file_by_date_kb())
+    await state.set_state(GetFilesByDate.chose_date)
 
 
 @router.message(Command("add_private"), StateFilter(None))
@@ -86,28 +88,32 @@ async def cmd_get_private(message: Message):
     if len(files) == 0:
         await message.answer("К сожалению пока что здесь нет файлов")
     for file in files:
-        await message.answer_document(document=file.file_id,
+        if file.name_by_user is not None:
+            await message.answer_document(document=file.file_id,
+                                          caption=f"{file.name_by_user}\nОтправлен {file.created_at.day:02d}-{file.created_at.month:02d}-{file.created_at.year} в {file.created_at.hour:02d}:{file.created_at.minute:02d}.")
+        else:
+            await message.answer_document(document=file.file_id,
                                       caption=f"Отправлен {file.created_at.day:02d}-{file.created_at.month:02d}-{file.created_at.year} в {file.created_at.hour:02d}:{file.created_at.minute:02d}.")
 
 
 
-@router.message(Command("get_by_name"), StateFilter(None))
-async def cmd_get_by_name(message: Message, command: CommandObject):
-    if command.args is None:
-        await message.answer("Ошибка: не передано имя")
-        return
-
-    try:
-        name = command.args
-    except IndexError:
-        await message.answer("Ошибка: неправильный формат команды. Пример:\n"
-                             "/get_by_name <name>")
-        return
-    files = await get_files_by_name(name)
-    for file in files:
-        await message.answer_document(document=file.file_id,
-                                      caption=f"{file.name_by_user}\n"
-                                              f"Отправлен {file.created_at.day:02d}-{file.created_at.month:02d}-{file.created_at.year} в {file.created_at.hour:02d}:{file.created_at.minute:02d}.")
+# @router.message(Command("get_by_name"), StateFilter(None))
+# async def cmd_get_by_name(message: Message, command: CommandObject):
+#     if command.args is None:
+#         await message.answer("Ошибка: не передано имя")
+#         return
+#
+#     try:
+#         name = command.args
+#     except IndexError:
+#         await message.answer("Ошибка: неправильный формат команды. Пример:\n"
+#                              "/get_by_name <name>")
+#         return
+#     files = await get_files_by_name(name)
+#     for file in files:
+#         await message.answer_document(document=file.file_id,
+#                                       caption=f"{file.name_by_user}\n"
+#                                               f"Отправлен {file.created_at.day:02d}-{file.created_at.month:02d}-{file.created_at.year} в {file.created_at.hour:02d}:{file.created_at.minute:02d}.")
 
 
 #-------------------------------------------Add-Category-диалог-------------------------------------------
@@ -244,9 +250,38 @@ async def get_category_chosen(callback: CallbackQuery, callback_data: Categories
     files = await get_moderation_files(callback_data.name)
     if len(files) == 0:
         await callback.message.answer("К сожалению пока что здесь нет файлов.")
+    await callback.message.answer("Выбери файл:", reply_markup= await make_file_by_name_kb(callback_data.name))
+    await state.set_state(GetFile.chose_name)
+    await state.update_data(get_file_category=callback_data.name)
+    await callback.answer()
+
+
+@router.callback_query(FileCallbackFactory.filter(F.name == "all"), GetFile.chose_name)
+async def get_all_files_handler(callback: CallbackQuery, state: FSMContext):
+    user_data = await state.get_data()
+    files = await get_moderation_files(user_data["get_file_category"])
     for file in files:
-        await callback.message.answer_document(document=file.file_id,
-                                      caption=f"Отправлен {file.created_at.day:02d}-{file.created_at.month:02d}-{file.created_at.year} в {file.created_at.hour:02d}:{file.created_at.minute:02d}.")
+        await callback.message.answer_document(document=file.file_id)
+    await state.clear()
+    await callback.answer()
+
+
+@router.callback_query(GetFile.chose_name, FileCallbackFactory.filter(F.name != "all"))
+async def get_files_by_name_handler(callback: CallbackQuery, callback_data: FileCallbackFactory, state: FSMContext):
+    user_data = await state.get_data()
+    files = await get_files_by_name(callback_data.name, user_data["get_file_category"])
+    for file in files:
+        await callback.message.answer_document(document=file.file_id, caption=file.name_by_user)
+    await state.clear()
+    await callback.answer()
+
+
+#-------------------------------------------Get-By-Date-диалог-------------------------------------------
+@router.callback_query(GetFilesByDate.chose_date, DateCallbackFactory.filter())
+async def get_files_by_date_handler(callback: CallbackQuery, callback_data: DateCallbackFactory, state: FSMContext):
+    files = await get_files_by_date(callback_data.date)
+    for file in files:
+        await callback.message.answer_document(document=file.file_id)
     await state.clear()
     await callback.answer()
 
@@ -291,4 +326,3 @@ async def add_private_filename(message: Message, state: FSMContext):
 @router.message(AddPrivateFile.add_file_name)
 async def filename_private_chosen_incorrectly(message: Message):
     await message.answer("Кажется это не название.\nПожалуйста, напиши название файла.")
-
